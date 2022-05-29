@@ -1,0 +1,12 @@
+{
+    "name": "routebot",
+    "version-string": "0.0.1",
+    "homepage": "https://github.com/NullMember/RouteBot",
+    "description": "Discord audio router to audio IO.",
+    "dependencies": [
+        {
+            "name": "rtaudio",
+            "features": ["asio"]
+        }
+    ]
+}

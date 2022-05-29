@@ -51,13 +51,16 @@ inline int RingBuffer<T>::write(T* _values, size_t _length) {
 
 template<class T>
 inline int RingBuffer<T>::read(T* _buffer, size_t _length) {
-    if (_length > readable_length) {
-        return 0;
-    }
-    for (size_t i = 0; i < _length; i++) {
+    size_t read_size = _length > readable_length ? readable_length : _length;
+    for (size_t i = 0; i < read_size; i++) {
         _buffer[i] = buffer[(i + read_index) % length];
     }
-    readable_length -= _length;
+    if (read_size != _length) {
+        for (size_t i = read_size; i < _length; i++) {
+            _buffer[i] = 0;
+        }
+    }
+    readable_length -= read_size;
     read_index = (read_index + _length) % length;
     return _length;
 }

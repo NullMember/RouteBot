@@ -9,7 +9,7 @@
 #include <chrono>
 
 #define MAX_CHANNELS                16
-#define BUFFER_SIZE_COEFF           1024
+#define BUFFER_SIZE_COEFF           128
 #define PREFERRED_BUFFER_SIZE       128
 #define PREFERRED_SAMPLE_RATE       48000
 
@@ -102,7 +102,7 @@ void error_callback(RtAudioError::Type type, const std::string &errorText) {
 int main(int argc, char const *argv[])
 {
     bool running = true;
-    #ifdef __WIN32__
+    #ifdef _WIN32
     RtAudio audio(RtAudio::Api::WINDOWS_ASIO);
     std::string device = "ReaRoute ASIO (x64)";
     #elif __APPLE__

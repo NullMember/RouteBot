@@ -6,7 +6,28 @@
     "dependencies": [
         {
             "name": "rtaudio",
-            "features": ["asio"]
+            "features": ["asio"],
+            "platform": "windows"
+        },
+        {
+            "name": "rtaudio",
+            "platform": "osx"
+        },
+        {
+            "name": "openssl",
+            "platform": "osx"
+        },
+        {
+            "name": "zlib",
+            "platform": "osx"
+        },
+        {
+            "name": "libsodium",
+            "platform": "osx"
+        },
+        {
+            "name": "opus",
+            "platform": "osx"
         }
     ]
 }

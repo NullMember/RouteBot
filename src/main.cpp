@@ -94,7 +94,13 @@ void error_callback(RtAudioError::Type type, const std::string &errorText) {
 
 int main(int argc, char const *argv[])
 {
+    #ifdef __WIN32__
     RtAudio audio(RtAudio::Api::WINDOWS_ASIO);
+    std::string device = "ReaRoute ASIO (x64)";
+    #elif __APPLE__
+    RtAudio audio(RtAudio::Api::MACOSX_CORE);
+    std::string device = "Existential Audio Inc.: BlackHole 16ch";
+    #endif
     RtAudio::StreamParameters input_parameters;
     RtAudio::StreamParameters output_parameters;
     RtAudio::StreamOptions stream_options;
@@ -108,7 +114,7 @@ int main(int argc, char const *argv[])
     for(unsigned int i = 0; i < audio.getDeviceCount(); i++) {
         auto info = audio.getDeviceInfo(i);
         if(info.probed == true) {
-            if (info.name.compare("ReaRoute ASIO (x64)") == 0) {
+            if (info.name.compare(device) == 0) {
                 input_parameters.deviceId = i;
                 input_parameters.firstChannel = 0;
                 input_parameters.nChannels = info.inputChannels;

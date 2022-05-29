@@ -5,6 +5,8 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 #define MAX_CHANNELS                16
 #define BUFFER_SIZE_COEFF           1024
@@ -22,7 +24,12 @@ typedef struct ChannelData
 inline int get_channel_num(ChannelData_t** channels, dpp::snowflake user_id) {
     for (size_t i = 0; i < MAX_CHANNELS; i++) {
         if (channels[i]->user_id == user_id) {
-            return i;
+            if (channels[i]->acquired) {
+                return i;
+            }
+            else {
+                return -1;
+            }
         }
     }
     return -1;
@@ -94,6 +101,7 @@ void error_callback(RtAudioError::Type type, const std::string &errorText) {
 
 int main(int argc, char const *argv[])
 {
+    bool running = true;
     #ifdef __WIN32__
     RtAudio audio(RtAudio::Api::WINDOWS_ASIO);
     std::string device = "ReaRoute ASIO (x64)";
@@ -152,48 +160,110 @@ int main(int argc, char const *argv[])
     audio.startStream();
  
     dpp::cluster bot("OTgwMDQ2MjQxNjM3NDcwMjg4.G6MTfy.-KcwWS9nXUr1cNGKoUP7tJibCWTpMRitn4N21Q", dpp::i_default_intents | dpp::i_message_content | dpp::i_guild_members);
- 
+    dpp::snowflake master_user = 0;
+    dpp::snowflake current_guild = 0;
+    dpp::snowflake current_text_channel = 0;
+
     bot.on_log(dpp::utility::cout_logger());
  
     /* Use the on_message_create event to look for commands */
-    bot.on_message_create([&bot, &channels](const dpp::message_create_t & event) {
+    bot.on_message_create(
+        [
+            &bot, 
+            &channels,
+            &master_user,
+            &current_guild, 
+            &current_text_channel
+        ](const dpp::message_create_t & event) {
  
         std::stringstream ss(event.msg.content);
         std::string command;
  
         ss >> command;
  
-        /* Tell the bot to record */
+        /* Tell the bot to join voice channel */
         if (command == ".join") {
-            dpp::guild * g = dpp::find_guild(event.msg.guild_id);
-            if (!g->connect_member_voice(event.msg.author.id)) {
+            if (current_guild == 0) {
+                dpp::guild * g = dpp::find_guild(event.msg.guild_id);
+                if (!g->connect_member_voice(event.msg.author.id)) {
+                    bot.message_create(dpp::message(
+                        current_text_channel, 
+                        "You're not connected to any voice channel'"
+                    ));
+                }
+                else {
+                    current_guild = event.msg.guild_id;
+                    current_text_channel = event.msg.channel_id;
+                    master_user = event.msg.author.id;
+                }
+            }
+            else {
                 bot.message_create(dpp::message(
                     event.msg.channel_id, 
-                    "You don't seem to be on a voice channel! :("
+                    "RouteBot already connected to a voice channel"
                 ));
             }
         }
  
-        /* Tell the bot to stop recording */
-        if (command == ".stop") {
-            event.from->disconnect_voice(event.msg.guild_id);
-            unclaim_channel_all(channels);
+        /* Tell the bot to leave voice channel */
+        if (command == ".leave") {
+            if (event.msg.author.id == master_user) {
+                event.from->disconnect_voice(current_guild);
+                current_guild = 0;
+                current_text_channel = 0;
+                master_user = 0;
+                unclaim_channel_all(channels);
+            }
+            else {
+                bot.message_create(dpp::message(
+                    event.msg.channel_id, 
+                    "You don't have permission to give commands"
+                ));
+            }
         }
 
-        if (command == ".info") {
-            std::ostringstream os;
-            os << event.msg.author.id;
-            bot.message_create(dpp::message(
-                event.msg.channel_id,
-                os.str()
-            ));
+        /* Unclaim all channels */
+        if (command == ".reset") {
+            if (event.msg.author.id == master_user) {
+                bot.message_create(dpp::message(
+                    current_text_channel, 
+                    "All channels unclaimed"
+                ));
+                unclaim_channel_all(channels);
+            }
+            else {
+                bot.message_create(dpp::message(
+                    event.msg.channel_id, 
+                    "You don't have permission to give commands"
+                ));
+            }
+        }
+
+        if (command == ".close") {
+            bot.~cluster();
         }
     });
  
-    bot.on_voice_receive([&bot, &channels, &conversion_buffer](const dpp::voice_receive_t &event) {
+    bot.on_voice_receive(
+        [
+            &bot, 
+            &channels, 
+            &conversion_buffer,
+            &current_text_channel
+        ](const dpp::voice_receive_t &event) {
+        if (event.user_id == 0) {
+            return;
+        }
         int channel = get_channel_num(channels, event.user_id);
         if (channel < 0) {
             channel = claim_empty_channel(channels, event.user_id);
+            std::stringstream text;
+            dpp::user* user = dpp::find_user(event.user_id);
+            text << "User " << user->format_username() << " claimed channel " << channel;
+            bot.message_create(dpp::message(
+                current_text_channel, 
+                text.str()
+            ));
         }
         if (channel >= 0) {
             int16_t* data = (int16_t*)event.audio_data.data();

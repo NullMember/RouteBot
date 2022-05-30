@@ -9,7 +9,7 @@
 #include <chrono>
 
 #define MAX_CHANNELS                16
-#define BUFFER_SIZE_COEFF           128
+#define BUFFER_SIZE_COEFF           1024
 #define PREFERRED_BUFFER_SIZE       128
 #define PREFERRED_SAMPLE_RATE       48000
 
@@ -101,7 +101,12 @@ void error_callback(RtAudioError::Type type, const std::string &errorText) {
 
 int main(int argc, char const *argv[])
 {
-    std::string token(std::getenv("DISCORD_TOKEN"));
+    char* token = std::getenv("DISCORD_TOKEN");
+    if (!token)
+    {
+        std::cout << "Please set DISCORD_TOKEN variable" << std::endl;
+        return 0;
+    }
     bool running = true;
     #ifdef _WIN32
     RtAudio audio(RtAudio::Api::WINDOWS_ASIO);

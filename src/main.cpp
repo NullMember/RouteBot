@@ -101,6 +101,7 @@ void error_callback(RtAudioError::Type type, const std::string &errorText) {
 
 int main(int argc, char const *argv[])
 {
+    std::string token(std::getenv("DISCORD_TOKEN"));
     bool running = true;
     #ifdef _WIN32
     RtAudio audio(RtAudio::Api::WINDOWS_ASIO);
@@ -159,7 +160,7 @@ int main(int argc, char const *argv[])
     }
     audio.startStream();
  
-    dpp::cluster bot("OTgwMDQ2MjQxNjM3NDcwMjg4.G6MTfy.-KcwWS9nXUr1cNGKoUP7tJibCWTpMRitn4N21Q", dpp::i_default_intents | dpp::i_message_content | dpp::i_guild_members);
+    dpp::cluster bot(token, dpp::i_default_intents | dpp::i_message_content | dpp::i_guild_members);
     dpp::snowflake master_user = 0;
     dpp::snowflake current_guild = 0;
     dpp::snowflake current_text_channel = 0;

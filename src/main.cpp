@@ -174,7 +174,8 @@ int main(int argc, char const *argv[])
             &channels,
             &master_user,
             &current_guild, 
-            &current_text_channel
+            &current_text_channel,
+            &running
         ](const dpp::message_create_t & event) {
  
         std::stringstream ss(event.msg.content);
@@ -241,7 +242,19 @@ int main(int argc, char const *argv[])
         }
 
         if (command == ".close") {
-            bot.~cluster();
+            if (event.msg.author.id == master_user) {
+                bot.message_create(dpp::message(
+                    current_text_channel, 
+                    "All channels unclaimed"
+                ));
+                running = false;
+            }
+            else {
+                bot.message_create(dpp::message(
+                    event.msg.channel_id, 
+                    "You don't have permission to give commands"
+                ));
+            }
         }
     });
  
@@ -276,7 +289,12 @@ int main(int argc, char const *argv[])
     });
  
     /* Start bot */
-    bot.start(false);
+    bot.start();
+
+    while (running) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    bot.~cluster();
     audio.stopStream();
     audio.closeStream();
     return 0;

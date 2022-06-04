@@ -9,7 +9,7 @@
 #include <chrono>
 
 #define MAX_CHANNELS                16
-#define BUFFER_SIZE_COEFF           1024
+#define RING_BUFFER_SIZE            65536
 #define PREFERRED_BUFFER_SIZE       128
 #define PREFERRED_SAMPLE_RATE       48000
 
@@ -41,7 +41,7 @@ inline int claim_empty_channel(ChannelData_t** channels, dpp::snowflake user_id)
             channels[i]->user_id = user_id;
             channels[i]->acquired = true;
             channels[i]->ring_buffer.flush();
-            return channels[i]->channel;
+            return (int)(channels[i]->channel);
         }
     }
     return -1;
@@ -52,7 +52,7 @@ inline int claim_channel(ChannelData_t** channels, dpp::snowflake user_id, size_
         channels[channel]->user_id = user_id;
         channels[channel]->acquired = true;
         channels[channel]->ring_buffer.flush();
-        return channels[channel]->channel;
+        return (int)(channels[channel]->channel);
     }
     return -1;
 }
@@ -159,7 +159,7 @@ int main(int argc, char const *argv[])
             0, 
             false,
             i,
-            RingBuffer<int16_t>(*(buffer_size) * BUFFER_SIZE_COEFF)
+            RingBuffer<int16_t>(RING_BUFFER_SIZE)
         };
         channels[i] = channel;
     }
@@ -292,6 +292,7 @@ int main(int argc, char const *argv[])
                 conversion_buffer[i >> 1] = (data[i] + data[i + 1]) >> 1;
             }
             channels[channel]->ring_buffer.write(conversion_buffer, event.audio_data.size() >> 2);
+            std::cout << channels[channel]->ring_buffer.readable() << std::endl;
         }        
     });
  
@@ -301,7 +302,6 @@ int main(int argc, char const *argv[])
     while (running) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    bot.~cluster();
     audio.stopStream();
     audio.closeStream();
     return 0;

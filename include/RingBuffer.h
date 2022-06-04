@@ -13,8 +13,8 @@ private:
 public:
     RingBuffer(size_t _length);
     ~RingBuffer();
-    int write(T* _values, size_t _length);
-    int read(T* _buffer, size_t _length);
+    size_t write(T* _values, size_t _length);
+    size_t read(T* _buffer, size_t _length);
     size_t readable();
     void reset();
     void flush();
@@ -37,7 +37,7 @@ inline RingBuffer<T>::~RingBuffer()
 }
 
 template<class T>
-inline int RingBuffer<T>::write(T* _values, size_t _length) {
+inline size_t RingBuffer<T>::write(T* _values, size_t _length) {
     if (readable_length + _length > length) {
         return 0;
     }
@@ -50,18 +50,18 @@ inline int RingBuffer<T>::write(T* _values, size_t _length) {
 }
 
 template<class T>
-inline int RingBuffer<T>::read(T* _buffer, size_t _length) {
+inline size_t RingBuffer<T>::read(T* _buffer, size_t _length) {
     size_t read_size = _length > readable_length ? readable_length : _length;
     for (size_t i = 0; i < read_size; i++) {
         _buffer[i] = buffer[(i + read_index) % length];
     }
-    if (read_size != _length) {
+    if (read_size < _length) {
         for (size_t i = read_size; i < _length; i++) {
             _buffer[i] = 0;
         }
     }
     readable_length -= read_size;
-    read_index = (read_index + _length) % length;
+    read_index = (read_index + read_size) % length;
     return _length;
 }
 

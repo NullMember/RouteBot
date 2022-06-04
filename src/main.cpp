@@ -215,11 +215,11 @@ int main(int argc, char const *argv[])
         /* Tell the bot to leave voice channel */
         if (command == ".leave") {
             if (event.msg.author.id == master_user) {
+                unclaim_channel_all(channels);
                 event.from->disconnect_voice(current_guild);
                 current_guild = 0;
                 current_text_channel = 0;
                 master_user = 0;
-                unclaim_channel_all(channels);
             }
             else {
                 bot.message_create(dpp::message(
@@ -250,8 +250,10 @@ int main(int argc, char const *argv[])
             if (event.msg.author.id == master_user) {
                 bot.message_create(dpp::message(
                     current_text_channel, 
-                    "All channels unclaimed"
+                    "Closing RouteBot"
                 ));
+                unclaim_channel_all(channels);
+                event.from->disconnect_voice(current_guild);
                 running = false;
             }
             else {
